@@ -141,15 +141,15 @@ providers:
     api_key: sk-your-key
     protocol: openai # optional, defaults to openai
     models:
-      - id: gpt-4o-mini
+      - id: my-custom-model
         type: text
         context_length: 128000
       - id: image-1
         type: image
 ```
 
-Model IDs can be fully qualified (`custom/gpt-4o-mini`) or just the provider
-model name (`gpt-4o-mini`). Defaults in the config are used when
+Model IDs can be fully qualified (`custom/my-custom-model`) or just the
+provider model name (`my-custom-model`). Defaults in the config are used when
 `AI_CLI_*_MODEL` env vars are not set, and `-m` always wins.
 
 ### Timeouts

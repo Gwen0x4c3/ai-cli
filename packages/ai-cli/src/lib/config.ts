@@ -30,6 +30,7 @@ export interface ProviderConfig {
   name: string;
   baseUrl: string;
   apiKey?: string;
+  /** Defaults to "openai" when not specified in the config file. */
   protocol: string;
 }
 

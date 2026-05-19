@@ -210,11 +210,17 @@ function expandModelId(
 
 function getDefaultModel(modality: Modality): string {
   const configDefaults = getConfig().defaults;
-  const envDefault =
-    modality === "text"
-      ? process.env.AI_CLI_TEXT_MODEL
-      : modality === "image"
-        ? process.env.AI_CLI_IMAGE_MODEL
-        : process.env.AI_CLI_VIDEO_MODEL;
+  let envDefault: string | undefined;
+  switch (modality) {
+    case "text":
+      envDefault = process.env.AI_CLI_TEXT_MODEL;
+      break;
+    case "image":
+      envDefault = process.env.AI_CLI_IMAGE_MODEL;
+      break;
+    case "video":
+      envDefault = process.env.AI_CLI_VIDEO_MODEL;
+      break;
+  }
   return envDefault ?? configDefaults[modality] ?? BUILTIN_DEFAULTS[modality];
 }
