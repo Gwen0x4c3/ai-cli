@@ -1,16 +1,26 @@
+import { rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, describe, expect, mock, test } from "bun:test";
 
+import { resetConfigCache } from "./config.js";
 import {
+  fetchModels,
   resolveModels,
   fetchGatewayModels,
   resetGatewayCache,
 } from "./models.js";
 
 const originalFetch = globalThis.fetch;
+const CONFIG_PATH = join(tmpdir(), `ai-cli-test-config-${process.pid}.yaml`);
+
+process.env.AI_CLI_CONFIG_PATH = CONFIG_PATH;
 
 afterEach(() => {
   globalThis.fetch = originalFetch;
   resetGatewayCache();
+  resetConfigCache();
+  rmSync(CONFIG_PATH, { force: true });
 });
 
 function mockGateway(models: Record<string, unknown>[]) {
@@ -29,9 +39,9 @@ function mockGatewayError() {
 
 describe("resolveModels", () => {
   test("returns default when no user model", () => {
-    expect(resolveModels("text")[0]).toContain("/");
-    expect(resolveModels("image")[0]).toContain("/");
-    expect(resolveModels("video")[0]).toContain("/");
+    expect(resolveModels("text")[0]).toBeTruthy();
+    expect(resolveModels("image")[0]).toBeTruthy();
+    expect(resolveModels("video")[0]).toBeTruthy();
   });
 
   test("returns fully-qualified model as-is", () => {
@@ -303,5 +313,36 @@ describe("fetchGatewayModels", () => {
 
     const result = await fetchGatewayModels();
     expect(result.text[0].creator).toBe("openai");
+  });
+});
+
+describe("fetchModels", () => {
+  test("merges config models with gateway output", async () => {
+    writeFileSync(
+      CONFIG_PATH,
+      `
+models:
+  text: custom/gpt-mini
+providers:
+  custom:
+    base_url: https://example.com/v1
+    api_key: test-key
+    models:
+      - id: gpt-mini
+        type: text
+        context_length: 4096
+      - id: image-1
+        type: image
+`
+    );
+    resetConfigCache();
+    mockGateway([]);
+
+    const result = await fetchModels();
+
+    const customText = result.text.find((m) => m.id === "custom/gpt-mini");
+    expect(customText?.creator).toBe("custom");
+    expect(customText?.contextLength).toBe(4096);
+    expect(result.image.some((m) => m.id === "custom/image-1")).toBe(true);
   });
 });

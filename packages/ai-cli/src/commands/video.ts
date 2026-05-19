@@ -1,13 +1,14 @@
-import { experimental_generateVideo as generateVideo, gateway } from "ai";
+import { experimental_generateVideo as generateVideo } from "ai";
 import type { Command } from "commander";
 
 import { buildJobs, runJobs } from "../lib/jobs.js";
-import { fetchGatewayModels, resolveModels } from "../lib/models.js";
+import { fetchModels, resolveModels } from "../lib/models.js";
 import {
   parsePositiveInt,
   parseAspectRatio,
   parseNonNegativeFloat,
 } from "../lib/parse.js";
+import { resolveModel } from "../lib/providers.js";
 import { readStdin } from "../lib/stdin.js";
 
 const DEFAULT_CONCURRENCY = 2;
@@ -65,8 +66,8 @@ export function registerVideoCommand(program: Command) {
           : { image: new Uint8Array(stdin) };
       }
 
-      const gatewayModels = await fetchGatewayModels();
-      const models = resolveModels("video", opts.model, gatewayModels.video);
+      const availableModels = await fetchModels();
+      const models = resolveModels("video", opts.model, availableModels.video);
       const countPerModel = opts.count
         ? parsePositiveInt(opts.count, "count")
         : 1;
@@ -88,7 +89,7 @@ export function registerVideoCommand(program: Command) {
               "http-referer": "https://github.com/vercel-labs/ai-cli",
               "x-title": "ai-cli",
             },
-            model: gateway.video(modelId),
+            model: resolveModel("video", modelId),
             prompt: videoPrompt,
             abortSignal: abort,
             aspectRatio,

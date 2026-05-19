@@ -1,13 +1,17 @@
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, test } from "bun:test";
 
 import pkg from "../package.json";
 
 const CLI = ["bun", "run", "src/index.ts"];
 const ROOT = import.meta.dir + "/..";
+const CONFIG_PATH = join(tmpdir(), `ai-cli-test-config-${process.pid}.yaml`);
 
 async function run(...args: string[]) {
   const proc = Bun.spawn([...CLI, ...args], {
     cwd: ROOT,
+    env: { ...process.env, AI_CLI_CONFIG_PATH: CONFIG_PATH },
     stdout: "pipe",
     stderr: "pipe",
     stdin: "ignore",

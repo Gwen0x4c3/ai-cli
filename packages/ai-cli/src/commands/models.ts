@@ -1,10 +1,6 @@
 import type { Command } from "commander";
 
-import {
-  fetchGatewayModels,
-  type Modality,
-  type ModelEntry,
-} from "../lib/models.js";
+import { fetchModels, type Modality, type ModelEntry } from "../lib/models.js";
 
 function groupByCreator(models: ModelEntry[]): Map<string, ModelEntry[]> {
   const groups = new Map<string, ModelEntry[]>();
@@ -25,7 +21,7 @@ function modelName(id: string): string {
 export function registerModelsCommand(program: Command) {
   program
     .command("models")
-    .description("List available models from AI Gateway")
+    .description("List available models from AI Gateway and config")
     .option("--type <type>", "Filter by type: text, image, video")
     .option("--creator <name>", "Filter by creator (e.g. openai, google)")
     .option("--json", "Output as JSON (includes descriptions)")
@@ -41,7 +37,7 @@ export function registerModelsCommand(program: Command) {
         }
         const filterCreator = opts.creator?.toLowerCase();
 
-        const gatewayModels = await fetchGatewayModels();
+        const gatewayModels = await fetchModels();
 
         if (opts.json) {
           let entries = gatewayModels.all;
@@ -62,6 +58,7 @@ export function registerModelsCommand(program: Command) {
             creator: m.creator,
             capabilities: m.capabilities,
             ...(m.pricing ? { pricing: m.pricing } : {}),
+            ...(m.contextLength ? { contextLength: m.contextLength } : {}),
           }));
           process.stdout.write(JSON.stringify(output, null, 2) + "\n");
           return;

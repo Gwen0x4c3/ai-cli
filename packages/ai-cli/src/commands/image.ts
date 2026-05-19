@@ -1,9 +1,10 @@
-import { generateImage, generateText, gateway } from "ai";
+import { generateImage, generateText } from "ai";
 import type { Command } from "commander";
 
 import { buildJobs, runJobs } from "../lib/jobs.js";
-import { fetchGatewayModels, resolveModels } from "../lib/models.js";
+import { fetchModels, resolveModels } from "../lib/models.js";
 import { parsePositiveInt, parseSize, parseAspectRatio } from "../lib/parse.js";
+import { resolveModel } from "../lib/providers.js";
 import { readStdin } from "../lib/stdin.js";
 
 const DEFAULT_CONCURRENCY = 4;
@@ -66,8 +67,8 @@ export function registerImageCommand(program: Command) {
         imagePrompt = prompt!;
       }
 
-      const gatewayModels = await fetchGatewayModels();
-      const models = resolveModels("image", opts.model, gatewayModels.image);
+      const availableModels = await fetchModels();
+      const models = resolveModels("image", opts.model, availableModels.image);
       const countPerModel = opts.count
         ? parsePositiveInt(opts.count, "count")
         : 1;
@@ -93,7 +94,7 @@ export function registerImageCommand(program: Command) {
         async (modelId) => {
           const abort = AbortSignal.timeout(DEFAULT_TIMEOUT_MS);
 
-          if (gatewayModels.languageImageModelIds.has(modelId)) {
+          if (availableModels.languageImageModelIds.has(modelId)) {
             const messageContent: Array<
               | { type: "text"; text: string }
               | { type: "image"; image: Uint8Array }
@@ -116,7 +117,7 @@ export function registerImageCommand(program: Command) {
                 });
               }
             }
-            const creator = gatewayModels.all.find(
+            const creator = availableModels.all.find(
               (m) => m.id === modelId
             )?.creator;
             const result = await generateText({
@@ -124,7 +125,7 @@ export function registerImageCommand(program: Command) {
                 "http-referer": "https://github.com/vercel-labs/ai-cli",
                 "x-title": "ai-cli",
               },
-              model: gateway(modelId),
+              model: resolveModel("text", modelId),
               messages: [{ role: "user", content: messageContent }],
               abortSignal: abort,
               providerOptions:
@@ -148,7 +149,7 @@ export function registerImageCommand(program: Command) {
               "http-referer": "https://github.com/vercel-labs/ai-cli",
               "x-title": "ai-cli",
             },
-            model: gateway.image(modelId),
+            model: resolveModel("image", modelId),
             prompt: imagePrompt,
             abortSignal: abort,
             n: 1,

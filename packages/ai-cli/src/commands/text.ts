@@ -1,10 +1,11 @@
-import { generateText, gateway } from "ai";
+import { generateText } from "ai";
 import type { Command } from "commander";
 
 import { buildJobs, runJobs } from "../lib/jobs.js";
-import { fetchGatewayModels, resolveModels } from "../lib/models.js";
+import { fetchModels, resolveModels } from "../lib/models.js";
 import type { OutputFormat } from "../lib/output.js";
 import { parsePositiveInt, parseTemperature } from "../lib/parse.js";
+import { resolveModel } from "../lib/providers.js";
 import { readStdin, stdinAsText } from "../lib/stdin.js";
 
 const DEFAULT_CONCURRENCY = 4;
@@ -69,8 +70,8 @@ export function registerTextCommand(program: Command) {
       }
 
       const format = resolveFormat(opts.format);
-      const gatewayModels = await fetchGatewayModels();
-      const models = resolveModels("text", opts.model, gatewayModels.text);
+      const availableModels = await fetchModels();
+      const models = resolveModels("text", opts.model, availableModels.text);
       const countPerModel = opts.count
         ? parsePositiveInt(opts.count, "count")
         : 1;
@@ -92,7 +93,7 @@ export function registerTextCommand(program: Command) {
               "http-referer": "https://github.com/vercel-labs/ai-cli",
               "x-title": "ai-cli",
             },
-            model: gateway(modelId),
+            model: resolveModel("text", modelId),
             prompt: fullPrompt,
             system: opts.system,
             maxOutputTokens: maxTokens,

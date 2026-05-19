@@ -1,9 +1,11 @@
+import { getConfig } from "./config.js";
+
 export type Modality = "text" | "image" | "video";
 
-const DEFAULTS: Record<Modality, string> = {
-  text: process.env.AI_CLI_TEXT_MODEL ?? "openai/gpt-5.5",
-  image: process.env.AI_CLI_IMAGE_MODEL ?? "openai/gpt-image-2",
-  video: process.env.AI_CLI_VIDEO_MODEL ?? "bytedance/seedance-2.0",
+const BUILTIN_DEFAULTS: Record<Modality, string> = {
+  text: "openai/gpt-5.5",
+  image: "openai/gpt-image-2",
+  video: "bytedance/seedance-2.0",
 };
 
 const GATEWAY_MODELS_URL = "https://ai-gateway.vercel.sh/v1/models";
@@ -22,6 +24,7 @@ export interface ModelEntry {
   creator: string;
   capabilities: Modality[];
   pricing?: ModelPricing;
+  contextLength?: number;
 }
 
 export interface GatewayModels {
@@ -56,6 +59,38 @@ export function fetchGatewayModels(): Promise<GatewayModels> {
     });
   }
   return cached;
+}
+
+export async function fetchModels(): Promise<GatewayModels> {
+  const gatewayModels = await fetchGatewayModels();
+  const configModels = getConfig().models;
+  if (configModels.length === 0) return gatewayModels;
+
+  const merged: GatewayModels = {
+    text: [...gatewayModels.text],
+    image: [...gatewayModels.image],
+    video: [...gatewayModels.video],
+    all: [...gatewayModels.all],
+    languageImageModelIds: new Set(gatewayModels.languageImageModelIds),
+  };
+
+  const knownIds = new Set(merged.all.map((m) => m.id));
+  for (const model of configModels) {
+    if (knownIds.has(model.id)) continue;
+    knownIds.add(model.id);
+    merged.all.push(model);
+    if (model.capabilities.includes("text")) merged.text.push(model);
+    if (model.capabilities.includes("image")) merged.image.push(model);
+    if (model.capabilities.includes("video")) merged.video.push(model);
+    if (
+      model.capabilities.includes("text") &&
+      model.capabilities.includes("image")
+    ) {
+      merged.languageImageModelIds.add(model.id);
+    }
+  }
+
+  return merged;
 }
 
 export function resetGatewayCache(): void {
@@ -148,13 +183,14 @@ export function resolveModels(
   userModel?: string,
   knownModels?: Pick<ModelEntry, "id">[]
 ): string[] {
-  if (!userModel) return [DEFAULTS[modality]];
-  const models = userModel
+  const fallback = getDefaultModel(modality);
+  const input = userModel ?? fallback;
+  const models = input
     .split(",")
     .map((m) => m.trim())
     .filter(Boolean)
     .map((m) => expandModelId(m, knownModels));
-  return models.length > 0 ? models : [DEFAULTS[modality]];
+  return models.length > 0 ? models : [fallback];
 }
 
 function expandModelId(
@@ -170,4 +206,15 @@ function expandModelId(
   }
 
   return input;
+}
+
+function getDefaultModel(modality: Modality): string {
+  const configDefaults = getConfig().defaults;
+  const envDefault =
+    modality === "text"
+      ? process.env.AI_CLI_TEXT_MODEL
+      : modality === "image"
+        ? process.env.AI_CLI_IMAGE_MODEL
+        : process.env.AI_CLI_VIDEO_MODEL;
+  return envDefault ?? configDefaults[modality] ?? BUILTIN_DEFAULTS[modality];
 }
