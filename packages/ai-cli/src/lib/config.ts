@@ -169,9 +169,7 @@ function parseProviders(raw: unknown): {
         warnConfig(`duplicate model id "${id}" in config`);
         continue;
       }
-      const contextLength = parseContextLength(
-        model.contextLength ?? model.context_length
-      );
+      const contextLength = parseContextLength(readContextLength(model));
 
       models.push({
         id,
@@ -217,6 +215,10 @@ function parseContextLength(value: unknown): number | undefined {
     if (Number.isFinite(parsed) && parsed > 0) return Math.floor(parsed);
   }
   return undefined;
+}
+
+function readContextLength(model: RawProviderModel): unknown {
+  return model.contextLength ?? model.context_length;
 }
 
 function readString(value: unknown): string | undefined {
