@@ -82,7 +82,8 @@ ai image -m flux-2-pro "a sunset"   # resolves to bfl/flux-2-pro
 --json                   Output as JSON (includes descriptions)
 ```
 
-All model types (text, image, video) are fetched live from the AI Gateway.
+All model types (text, image, video) are fetched live from the AI Gateway, plus
+any models defined in `~/.config/ai-cli.yaml`.
 
 ### Multi-Model Comparison
 
@@ -123,6 +124,36 @@ When running in a terminal that supports the [Kitty graphics protocol](https://s
 | `FORCE_COLOR` | Force color output even when not a TTY |
 
 The `-m` flag always takes priority over `AI_CLI_*_MODEL` env vars. The `-o` flag always takes priority over `AI_CLI_OUTPUT_DIR`.
+
+### Configuration File
+
+You can configure default models and custom providers in
+`~/.config/ai-cli.yaml`:
+
+```yaml
+models:
+  text: openai/gpt-5.5
+  image: openai/gpt-image-2
+  video: bytedance/seedance-2.0
+providers:
+  custom:
+    base_url: https://api.example.com/v1
+    api_key: sk-your-key
+    protocol: openai # optional, defaults to openai
+    models:
+      - id: my-custom-model
+        type: text
+        context_length: 128000
+      - id: image-1
+        type: image
+```
+
+Model IDs can be fully qualified (`custom/my-custom-model`) or just the
+provider model name (`my-custom-model`). Defaults in the config are used when
+`AI_CLI_*_MODEL` env vars are not set, and `-m` always wins.
+
+Custom providers currently support text and image models (video remains
+gateway-only).
 
 ### Timeouts
 
