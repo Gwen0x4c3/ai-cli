@@ -152,6 +152,9 @@ Model IDs can be fully qualified (`custom/my-custom-model`) or just the
 provider model name (`my-custom-model`). Defaults in the config are used when
 `AI_CLI_*_MODEL` env vars are not set, and `-m` always wins.
 
+Custom providers currently support text and image models (video remains
+gateway-only).
+
 ### Timeouts
 
 Requests that exceed the timeout are aborted automatically:
