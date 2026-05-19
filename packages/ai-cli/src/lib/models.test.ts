@@ -39,9 +39,15 @@ function mockGatewayError() {
 
 describe("resolveModels", () => {
   test("returns default when no user model", () => {
-    expect(resolveModels("text")[0]).toBeTruthy();
-    expect(resolveModels("image")[0]).toBeTruthy();
-    expect(resolveModels("video")[0]).toBeTruthy();
+    const expectedText =
+      process.env.AI_CLI_TEXT_MODEL ?? "openai/gpt-5.5";
+    const expectedImage =
+      process.env.AI_CLI_IMAGE_MODEL ?? "openai/gpt-image-2";
+    const expectedVideo =
+      process.env.AI_CLI_VIDEO_MODEL ?? "bytedance/seedance-2.0";
+    expect(resolveModels("text")[0]).toBe(expectedText);
+    expect(resolveModels("image")[0]).toBe(expectedImage);
+    expect(resolveModels("video")[0]).toBe(expectedVideo);
   });
 
   test("returns fully-qualified model as-is", () => {
